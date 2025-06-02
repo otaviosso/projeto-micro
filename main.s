@@ -1,16 +1,10 @@
 .equ UART, 0x10001000
 .global _start
 
-# --- Seção de Dados ---
-.section .data
-BUFFER:
-    .skip 100 # buffer de entrada
-
-# --- Seção de Código ---
-.section .text
 _start:
     # --- Usa r16 para o endereço base da UART ---
     movia r16, UART
+    movia sp, 0x100000
 
 START_NEW_COMMAND:
     movia r22, BUFFER       # r22 = Ponteiro para o início do buffer
@@ -18,10 +12,10 @@ START_NEW_COMMAND:
 POLLING:
     # --- Ler um caractere ---
     # Usa r16 como base para ler da UART
-    ldwio r9, (r16)         # Lê Data/Status
-    andi r17, r9, 0x8000    # Testa RVALID (bit 15)
+    ldwio r23, (r16)         # Lê Data/Status
+    andi r17, r23, 0x8000    # Testa RVALID (bit 15)
     beq r17, r0, POLLING    # Espera se não houver char
-    andi r19, r9, 0xFF      # r19 = Caractere lido (ASCII)
+    andi r19, r23, 0xFF      # r19 = Caractere lido (ASCII)
 
     # --- Ecoar (Opcional, mas recomendado) ---
     # Se você adicionar uma função UART_PUTCHAR,
@@ -50,24 +44,49 @@ SAI:
     add r20, r20, r21
 
     # --- Switch Case (baseado no primeiro número) ---
-    movi r18, 0             # Compara com 0
-    beq r20, r18, case_0
+    movi r18, 00             # Compara com 0
+    beq r20, r18, case_00
+
+    movi r18, 01
+    beq r20, r18, case_01
+
     movi r18, 10             # Compara com 1
-    beq r20, r18, case_1
+    beq r20, r18, case_10
+
+    movi r18, 11             # Compara com 1
+    beq r20, r18, case_11
+
     movi r18, 20             # Compara com 2
-    beq r20, r18, case_2
+    beq r20, r18, case_20
+
+    movi r18, 21             # Compara com 1
+    beq r20, r18, case_21
     br case_DEFAULT         # Se nenhum, vai para default
 
-case_0:
+case_00:
     movi r18, 0x41          # 'A'
+    call _LED_LIGA
     br send_response
 
-case_1:
+case_01:
     movi r18, 0x42          # 'B'
+    call _LED_DESLIGA
     br send_response
 
-case_2:
+case_10:
     movi r18, 0x43          # 'C'
+    br send_response
+
+case_11:
+    movi r18, 0x44          # 'D'
+    br send_response
+
+case_20:
+    movi r18, 0x45          # 'E'
+    br send_response
+
+case_21:
+    movi r18, 0x46          # 'F'
     br send_response
 
 case_DEFAULT:
@@ -90,3 +109,7 @@ POLLING_ENVIO:
 
 FIM:
     br FIM
+
+BUFFER:
+    .skip 100 # buffer de entrada
+
