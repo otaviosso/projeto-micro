@@ -1,10 +1,110 @@
 .equ UART, 0x10001000
+.equ TEMPO, 0x10002000
 .global _start
+
+
+.org 0x20
+
+RTI:
+    ###
+    #prologo
+    addi sp, sp, -52
+    stw ra, 48(sp)
+    stw fp, 44(sp)
+    stw r8, 40(sp)
+    stw r9, 36(sp)
+    stw r10, 32(sp)
+    stw r16, 28(sp)
+    stw r17, 24(sp)
+    stw r18, 20(sp)
+    stw r19, 16(sp)
+    stw r20, 12(sp)
+    stw r21, 8(sp)
+    stw r22, 4(sp)
+    stw r23, 0(sp)
+    addi fp, sp, 44
+    ###
+
+    rdctl et, ipending
+    beq et, r0, END_RTI
+    subi ea, ea, 4
+    andi r13, et, 1
+    beq r13, r0, END_RTI
+    
+    call TIMER
+
+END_RTI:
+    #epilogo
+
+    ldw ra, 48(sp)
+    ldw fp, 44(sp)
+    ldw r8, 40(sp)
+    ldw r9, 36(sp)
+    ldw r10, 32(sp)
+    ldw r16, 28(sp)
+    ldw r17, 24(sp)
+    ldw r18, 20(sp)
+    ldw r19, 16(sp)
+    ldw r20, 12(sp)
+    ldw r21, 8(sp)
+    ldw r22, 4(sp)
+    ldw r23, 0(sp)
+    addi sp, sp, 52
+
+    eret
+    ###
+###
+
+TIMER:
+    movia r10, 0x10002000   #resetar TO do TIMER
+    stwio r0, (r10)
+    movia r10, FLAG_ANIMA
+    ldw r10, (r10)
+    bne r10, r0, CALL_ANIMA_LIGA
+    br FORA
+#    beq r8, r0 CALL_ANIMA_DESLIGA
+
+#    mov r8, FLAG_CRONO
+#    bne r0, CALL_CRONO_LIGA
+    CALL_ANIMA_LIGA:
+        call _ANIMACAO_LIGA
+        br END_RTI
+FORA:
+    /*
+    CALL_ANIMA_DESLIGA:
+        call _ANIMACAO_DESLIGA
+        br END_RTI
+
+    CALL_CRONO_LIGA:
+        call _CRONO_LIGA
+        br END_RTI
+
+    CALL_CRONO_DESLIGA:
+        call _CRONO_DESLIGA
+        br END_RTI
+    */
+ret
 
 _start:
     # --- Usa r16 para o endereço base da UART ---
     movia r16, UART
     movia sp, 0x100000
+    movia r8, TEMPO
+
+    movia r9, 25000000
+    andi r10, r9, 0xFFFF
+    stwio r10, 8(r8)
+
+    srli r9, r9, 16
+    stwio r9, 12(r8)
+    # Inicializar interrupção
+    
+    movi r9, 0b111
+    stwio r9, 4(r8)
+
+    movi r9, 1
+    wrctl ienable, r9
+    wrctl status, r9
 
 START_NEW_COMMAND:
     movia r22, BUFFER       # r22 = Ponteiro para o início do buffer
@@ -75,10 +175,17 @@ case_01:
 
 case_10:
     movi r18, 0x43          # 'C'
+    movia r17, FLAG_ANIMA
+    movia r19, 0x1
+    stw r19, (r17)
+  #  call RTI
     br send_response
 
 case_11:
     movi r18, 0x44          # 'D'
+    movia r17, FLAG_ANIMA
+    movia r19, 0x0
+    stw r19, (r17)
     br send_response
 
 case_20:
@@ -106,6 +213,15 @@ POLLING_ENVIO:
 
     # --- Loop ---
     br START_NEW_COMMAND    # Volta ao início para um novo comando
+
+
+
+FLAG_ANIMA:
+    .word 0
+FLAG_CRONO:
+    .word 0
+CRONO_COUNTER:
+    .word 0
 
 FIM:
     br FIM

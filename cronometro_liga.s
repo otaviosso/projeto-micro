@@ -1,0 +1,4 @@
+.global _CRONOMETRO_LIGA
+
+
+_CRONOMETRO_LIGA:
