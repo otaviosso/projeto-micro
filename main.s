@@ -1,5 +1,6 @@
 .equ UART, 0x10001000
 .equ TEMPO, 0x10002000
+.equ BUTAO, 0x10000050
 .global _start
 
 
@@ -28,9 +29,13 @@ RTI:
     rdctl et, ipending
     beq et, r0, END_RTI
     subi ea, ea, 4
-    andi r13, et, 1
+    andi r13, et, 1 # timer
+    andi r14, et, 2 # botao
     beq r13, r0, END_RTI
+    beq r14, r0, END_RTI
     
+    bne r13, 
+
     call TIMER
 
 END_RTI:
@@ -56,33 +61,91 @@ END_RTI:
 ###
 
 TIMER:
+
+    ###
+    #prologo
+    addi sp, sp, -52
+    stw ra, 48(sp)
+    stw fp, 44(sp)
+    stw r8, 40(sp)
+    stw r9, 36(sp)
+    stw r10, 32(sp)
+    stw r16, 28(sp)
+    stw r17, 24(sp)
+    stw r18, 20(sp)
+    stw r19, 16(sp)
+    stw r20, 12(sp)
+    stw r21, 8(sp)
+    stw r22, 4(sp)
+    stw r23, 0(sp)
+    addi fp, sp, 44
+    ###
+
+    .equ KEY,    0x10000050
+
+    movia r13, KEY
+    movia r12, PAUSA_CRONO
+    movia r14, 0b10
+    ldwio r13, (r13)
+    andi r13, r13, 0b10
+
+
     movia r10, 0x10002000   #resetar TO do TIMER
+   
+    #contar 5 interrupções de 200ms cada
+    movia r12, CRONO_COUNTER
+    ldw r15, (r12)
+    movi r14, 0x4 
+    beq r14, r15, ZERAR_CRONOMETRO_COUNTER # r12 < 4?
+    addi r15, r15, 0x1
+    stw r15, (r12)
+    br CRONOMETRO_LESSTHAN5
+
+# 1000ms -> atualizar 7 segmentos
+ZERAR_CRONOMETRO_COUNTER:
+    movi r14, 0x0
+    stw r14, (r12)
+
+# ??? 
+CRONOMETRO_LESSTHAN5:
+    movia r12, FLAG_CRONO
+    ldw r15, (r12)
+    beq r15, r0, CRONOMETRO_DESLIGADO:
+
+    call _CRONOMETRO_LIGA
+    br ANIMACAO
+
+CRONOMETRO_DESLIGADO:
+    call _CRONOMETRO_DESLIGA
+
+ANIMACAO: 
     stwio r0, (r10)
     movia r10, FLAG_ANIMA
     ldw r10, (r10)
     bne r10, r0, CALL_ANIMA_LIGA
     br FORA
-#    beq r8, r0 CALL_ANIMA_DESLIGA
 
-#    mov r8, FLAG_CRONO
-#    bne r0, CALL_CRONO_LIGA
     CALL_ANIMA_LIGA:
         call _ANIMACAO_LIGA
         br END_RTI
 FORA:
-    /*
-    CALL_ANIMA_DESLIGA:
-        call _ANIMACAO_DESLIGA
-        br END_RTI
+      #epilogo
 
-    CALL_CRONO_LIGA:
-        call _CRONO_LIGA
-        br END_RTI
-
-    CALL_CRONO_DESLIGA:
-        call _CRONO_DESLIGA
-        br END_RTI
-    */
+    ldw ra, 48(sp)
+    ldw fp, 44(sp)
+    ldw r8, 40(sp)
+    ldw r9, 36(sp)
+    ldw r10, 32(sp)
+    ldw r16, 28(sp)
+    ldw r17, 24(sp)
+    ldw r18, 20(sp)
+    ldw r19, 16(sp)
+    ldw r20, 12(sp)
+    ldw r21, 8(sp)
+    ldw r22, 4(sp)
+    ldw r23, 0(sp)
+    addi sp, sp, 52
+    ###
 ret
 
 _start:
@@ -91,7 +154,7 @@ _start:
     movia sp, 0x100000
     movia r8, TEMPO
 
-    movia r9, 25000000
+    movia r9, 10000000
     andi r10, r9, 0xFFFF
     stwio r10, 8(r8)
 
@@ -190,10 +253,16 @@ case_11:
 
 case_20:
     movi r18, 0x45          # 'E'
+    movia r17, FLAG_CRONO
+    movia r19, 0x1
+    stw r19, (r17)
     br send_response
 
 case_21:
     movi r18, 0x46          # 'F'
+    movia r17, FLAG_CRONO
+    movia r19, 0x0
+    stw r19, (r17)
     br send_response
 
 case_DEFAULT:
@@ -222,6 +291,10 @@ FLAG_CRONO:
     .word 0
 CRONO_COUNTER:
     .word 0
+PAUSA_CRONO:
+    .byte 0
+
+
 
 FIM:
     br FIM
