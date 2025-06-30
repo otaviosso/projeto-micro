@@ -1,5 +1,10 @@
 .global _CRONOMETRO_LIGA
 
+.global UNI_VALUE
+.global DEZ_VALUE
+.global CENT_VALUE
+.global MIL_VALUE
+
 #logica de pausa
 #desligar???
 _CRONOMETRO_LIGA:
@@ -17,19 +22,17 @@ _CRONOMETRO_LIGA:
     addi fp, sp, 28
 ###
 .equ SEG7,   0x10000020
-/*
-.equ KEY,    0x10000050
 
-    movia r13, KEY
-    movia r12, PAUSA_CRONO
-    movia r14, 0b10
-    ldwio r13, (r13)
-    andi r13, r13, 0b10
-*/
     ldw r13, 16(sp)
     bne r13, r14, NAO_ZERAR
     ldb r12, (r12)
     beq r12, r14, DRAW
+
+PAUSADO:
+    movia r12, PAUSA_CRONO
+    movi r13, 0x2
+    ldb r12, (r12)
+    beq r12, r13, PAUSADO
 
 NAO_ZERAR:
     movia r12, UNI_VALUE #incrementando crono_value
@@ -160,5 +163,4 @@ NUMBERS:
 END:
     br END
 .end
-
 

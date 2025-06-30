@@ -2,7 +2,7 @@
 .equ TEMPO, 0x10002000
 .equ BUTAO, 0x10000050
 .global _start
-
+.global PAUSA_CRONO
 
 .org 0x20
 
@@ -29,13 +29,9 @@ RTI:
     rdctl et, ipending
     beq et, r0, END_RTI
     subi ea, ea, 4
-    andi r13, et, 1 # timer
-    andi r14, et, 2 # botao
+    andi r13, et, 1
     beq r13, r0, END_RTI
-    beq r14, r0, END_RTI
     
-    bne r13, 
-
     call TIMER
 
 END_RTI:
@@ -59,7 +55,6 @@ END_RTI:
     eret
     ###
 ###
-
 TIMER:
 
     ###
@@ -88,6 +83,7 @@ TIMER:
     movia r14, 0b10
     ldwio r13, (r13)
     andi r13, r13, 0b10
+    stb r13, (r12)
 
 
     movia r10, 0x10002000   #resetar TO do TIMER
@@ -154,7 +150,7 @@ _start:
     movia sp, 0x100000
     movia r8, TEMPO
 
-    movia r9, 10000000
+    movia r9, 50000000 
     andi r10, r9, 0xFFFF
     stwio r10, 8(r8)
 
@@ -293,8 +289,6 @@ CRONO_COUNTER:
     .word 0
 PAUSA_CRONO:
     .byte 0
-
-
 
 FIM:
     br FIM

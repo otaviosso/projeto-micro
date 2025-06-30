@@ -16,6 +16,17 @@ _CRONOMETRO_DESLIGA:
     ldw r22, (r0)
     stwio r22, (r11) # salvando 7seg     
 
+    movia r16, UNI_VALUE
+    stb r0, (r16)
+
+    movia r16, DEZ_VALUE
+    stb r0, (r16)
+
+    movia r16, CENT_VALUE
+    stb r0, (r16)
+
+    movia r16, MIL_VALUE
+    stb r0, (r16)
 #epilogo
 
     ldw ra, 12(sp)
@@ -27,12 +38,9 @@ _CRONOMETRO_DESLIGA:
 ret
 
 .org 0x500
-NUMBERS:
-.byte 0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f # numeros 7 seg 0 - 9
 
 
 END:
     br END
 .end
-
 
